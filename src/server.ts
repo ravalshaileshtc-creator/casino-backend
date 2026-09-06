@@ -4,6 +4,7 @@ import cors from 'cors';
 import { adminRouter } from './admin/admin.routes';
 import { gamesRouter } from './games/games.routes';
 import { authRouter } from './auth/auth.routes';
+import { paymentsRouter } from './wallet/wallet.routes';
 import { SocketService } from './websocket/socket.service';
 import { LuckyBallEngine } from './games/luckyball/engine';
 
@@ -18,6 +19,7 @@ app.use(express.json());
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/games', gamesRouter);
+app.use('/api/v1/payments', paymentsRouter);
 
 // Root status landing
 app.get('/', (req, res) => {
