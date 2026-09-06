@@ -4,7 +4,7 @@ exports.authRouter = void 0;
 const express_1 = require("express");
 const db_1 = require("../database/db");
 exports.authRouter = (0, express_1.Router)();
-// Register New User (Strict Verification)
+// Register New User (Strict Verification & Supabase Persistence)
 exports.authRouter.post('/register', async (req, res) => {
     try {
         const { name, mobile, email, password } = req.body;
@@ -12,10 +12,17 @@ exports.authRouter.post('/register', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Name, Mobile and Password are required' });
         }
         const cleanMobile = mobile.trim();
-        // Check if mobile already exists
+        // 1. Check in Memory
         for (const u of db_1.db.users.values()) {
             if (u.mobile === cleanMobile) {
                 return res.status(400).json({ success: false, message: 'Mobile number is already registered. Please Login!' });
+            }
+        }
+        // 2. Check in Supabase Cloud
+        if (db_1.supabase) {
+            const { data: existing } = await db_1.supabase.from('users').select('id').eq('mobile', cleanMobile).maybeSingle();
+            if (existing) {
+                return res.status(400).json({ success: false, message: 'Mobile number is already registered in Supabase. Please Login!' });
             }
         }
         const newUserId = `usr_${Date.now().toString().substring(6)}`;
@@ -24,7 +31,7 @@ exports.authRouter.post('/register', async (req, res) => {
             name: name.trim(),
             mobile: cleanMobile,
             email: email ? email.trim() : `${cleanMobile}@gamehub.com`,
-            wallet_balance: 1000.00, // ₹1,000 Welcome Bonus
+            wallet_balance: 1000.00, // ₹1,000 Real Welcome Bonus
             bonus_balance: 100.00,
             referral_code: `APEX${cleanMobile.substring(cleanMobile.length - 4)}`,
             vip_level: 1,
@@ -43,7 +50,7 @@ exports.authRouter.post('/register', async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 });
-// Login (Strict - User MUST be registered)
+// Login (Strict - User MUST be registered, loads real balance from Supabase)
 exports.authRouter.post('/login', async (req, res) => {
     try {
         const { mobile, password } = req.body;
@@ -52,10 +59,34 @@ exports.authRouter.post('/login', async (req, res) => {
         }
         const query = mobile.trim();
         let foundUser = null;
+        // 1. Search in Active Memory
         for (const u of db_1.db.users.values()) {
             if (u.mobile === query || u.email.toLowerCase() === query.toLowerCase() || u.id === query) {
                 foundUser = u;
                 break;
+            }
+        }
+        // 2. If not in memory, Search in Supabase Cloud Database!
+        if (!foundUser && db_1.supabase) {
+            const { data: supaUser } = await db_1.supabase
+                .from('users')
+                .select('*')
+                .or(`mobile.eq.${query},email.eq.${query}`)
+                .maybeSingle();
+            if (supaUser) {
+                foundUser = {
+                    id: supaUser.id,
+                    name: supaUser.name,
+                    mobile: supaUser.mobile,
+                    email: supaUser.email,
+                    wallet_balance: Number(supaUser.wallet_balance),
+                    bonus_balance: Number(supaUser.bonus_balance || 0),
+                    referral_code: supaUser.referral_code,
+                    vip_level: Number(supaUser.vip_level || 1),
+                    is_banned: Boolean(supaUser.is_banned),
+                    created_at: supaUser.created_at,
+                };
+                db_1.db.users.set(foundUser.id, foundUser);
             }
         }
         // STRICT CHECK: Reject if user does not exist
@@ -77,6 +108,38 @@ exports.authRouter.post('/login', async (req, res) => {
             message: 'Login successful!',
             data: foundUser
         });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+// Get Real-Time Live User Profile & Balance
+exports.authRouter.get('/user/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        let user = db_1.db.users.get(id);
+        if (!user && db_1.supabase) {
+            const { data: supaUser } = await db_1.supabase.from('users').select('*').eq('id', id).maybeSingle();
+            if (supaUser) {
+                user = {
+                    id: supaUser.id,
+                    name: supaUser.name,
+                    mobile: supaUser.mobile,
+                    email: supaUser.email,
+                    wallet_balance: Number(supaUser.wallet_balance),
+                    bonus_balance: Number(supaUser.bonus_balance || 0),
+                    referral_code: supaUser.referral_code,
+                    vip_level: Number(supaUser.vip_level || 1),
+                    is_banned: Boolean(supaUser.is_banned),
+                    created_at: supaUser.created_at,
+                };
+                db_1.db.users.set(user.id, user);
+            }
+        }
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+        res.json({ success: true, data: user });
     }
     catch (error) {
         res.status(500).json({ success: false, message: error.message });
