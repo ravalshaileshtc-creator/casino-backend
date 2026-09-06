@@ -28,8 +28,8 @@ paymentsRouter.post('/deposit', async (req: Request, res: Response) => {
       user_name: userName,
       type: 'deposit',
       amount: amt,
-      upiId: upiId || 'UPI App',
-      utrNumber: utrNumber.trim(),
+      upi_id: upiId || 'UPI App',
+      utr_number: utrNumber.trim(),
       status: 'pending',
       created_at: new Date().toISOString()
     };
@@ -93,7 +93,7 @@ paymentsRouter.post('/withdraw', async (req: Request, res: Response) => {
       user_name: user.name,
       type: 'withdraw',
       amount: amt,
-      upiId: payoutTarget,
+      upi_id: payoutTarget,
       status: 'pending',
       created_at: new Date().toISOString()
     };
