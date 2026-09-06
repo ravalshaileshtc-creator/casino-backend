@@ -21,6 +21,18 @@ class WalletService {
         user.wallet_balance = +(user.wallet_balance - amount).toFixed(2);
         const after = user.wallet_balance;
         db_1.db.users.set(userId, user);
+        db_1.db.saveUserToSupabase(user);
+        // Save transaction to Supabase
+        db_1.db.savePaymentToSupabase({
+            id: `tx_${Date.now()}`,
+            user_id: userId,
+            user_name: user.name,
+            type: 'withdraw',
+            amount,
+            upi_id: 'Wallet Debit',
+            status: 'approved',
+            created_at: new Date().toISOString()
+        });
         return { success: true, newBalance: after };
     }
     static credit(userId, amount, remark = 'Game Win / Deposit') {
@@ -31,6 +43,18 @@ class WalletService {
         user.wallet_balance = +(user.wallet_balance + amount).toFixed(2);
         const after = user.wallet_balance;
         db_1.db.users.set(userId, user);
+        db_1.db.saveUserToSupabase(user);
+        // Save transaction to Supabase
+        db_1.db.savePaymentToSupabase({
+            id: `tx_${Date.now()}`,
+            user_id: userId,
+            user_name: user.name,
+            type: 'deposit',
+            amount,
+            upi_id: 'Wallet Credit',
+            status: 'approved',
+            created_at: new Date().toISOString()
+        });
         return { success: true, newBalance: after };
     }
     static adminAdjustBalance(adminId, userId, amount, type, reason) {

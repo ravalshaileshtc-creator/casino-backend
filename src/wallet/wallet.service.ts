@@ -18,6 +18,20 @@ export class WalletService {
     const after = user.wallet_balance;
 
     db.users.set(userId, user);
+    db.saveUserToSupabase(user);
+
+    // Save transaction to Supabase
+    db.savePaymentToSupabase({
+      id: `tx_${Date.now()}`,
+      user_id: userId,
+      user_name: user.name,
+      type: 'withdraw',
+      amount,
+      upi_id: 'Wallet Debit',
+      status: 'approved',
+      created_at: new Date().toISOString()
+    });
+
     return { success: true, newBalance: after };
   }
 
@@ -30,6 +44,20 @@ export class WalletService {
     const after = user.wallet_balance;
 
     db.users.set(userId, user);
+    db.saveUserToSupabase(user);
+
+    // Save transaction to Supabase
+    db.savePaymentToSupabase({
+      id: `tx_${Date.now()}`,
+      user_id: userId,
+      user_name: user.name,
+      type: 'deposit',
+      amount,
+      upi_id: 'Wallet Credit',
+      status: 'approved',
+      created_at: new Date().toISOString()
+    });
+
     return { success: true, newBalance: after };
   }
 
