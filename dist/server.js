@@ -8,6 +8,7 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const admin_routes_1 = require("./admin/admin.routes");
 const games_routes_1 = require("./games/games.routes");
+const auth_routes_1 = require("./auth/auth.routes");
 const socket_service_1 = require("./websocket/socket.service");
 const engine_1 = require("./games/luckyball/engine");
 const app = (0, express_1.default)();
@@ -16,6 +17,7 @@ const PORT = process.env.PORT || 4000;
 app.use((0, cors_1.default)({ origin: '*' }));
 app.use(express_1.default.json());
 // API Routes
+app.use('/api/v1/auth', auth_routes_1.authRouter);
 app.use('/api/v1/admin', admin_routes_1.adminRouter);
 app.use('/api/v1/games', games_routes_1.gamesRouter);
 // Root status landing

@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import { adminRouter } from './admin/admin.routes';
 import { gamesRouter } from './games/games.routes';
+import { authRouter } from './auth/auth.routes';
 import { SocketService } from './websocket/socket.service';
 import { LuckyBallEngine } from './games/luckyball/engine';
 
@@ -14,6 +15,7 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 
 // API Routes
+app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/games', gamesRouter);
 
